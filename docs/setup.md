@@ -22,16 +22,7 @@ sudo usermod -aG dialout $USER
 
 Log out and log in again (or reboot). Check: `id -nG` must show `dialout`.
 
-## 3. PlatformIO udev rules
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/system/99-platformio-udev.rules \
-  | sudo tee /etc/udev/rules.d/99-platformio-udev.rules
-sudo udevadm control --reload-rules
-sudo udevadm trigger
-```
-
-## 4. VS Code + PlatformIO
+## 3. VS Code + PlatformIO
 
 ```bash
 code --install-extension platformio.platformio-ide
@@ -44,6 +35,20 @@ then reload the window. Make `pio` available in any terminal:
 ln -sf ~/.platformio/penv/bin/pio ~/.local/bin/pio
 pio --version
 ```
+
+## 4. PlatformIO udev rules
+
+Install the rules file that comes with the installed PlatformIO Core, so the versions match
+(otherwise `pio` prints "udev rules are outdated"):
+
+```bash
+sudo cp ~/.platformio/penv/lib/python3*/site-packages/platformio/assets/system/99-platformio-udev.rules \
+  /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+Repeat this step after a PlatformIO Core update if the warning appears again.
 
 ## 5. ESP32 platform (pioarduino)
 

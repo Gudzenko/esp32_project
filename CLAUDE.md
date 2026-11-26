@@ -32,6 +32,8 @@ The user knows Python well and C++ only at a basic level. Talk to the user in Ru
   Many examples on the internet are for Arduino-ESP32 2.x – check the API (e.g. LEDC/PWM changed in 3.x).
 - Python for tools on the PC (scripts, plotting, data).
 - Environment setup: `docs/setup.md`. Problems with the board connection: skill `esp32-env-check`.
+- Build, upload, read serial output: skill `esp32-build-flash`. Known problems: `docs/known-issues.md`.
+- Shared PlatformIO settings: `platformio-common.ini` (each project `extends = common_esp32`).
 
 ## Repository layout
 
@@ -47,6 +49,11 @@ Planned layout. Create folders only when the first real content appears.
 ## Conventions
 
 - Code, comments and docs: English. Docs are short and simple.
+- **No comments in code.** Code must be clear by itself: good names, named constants, small functions.
+  Only critical comments (non-obvious hardware reasons, pitfalls) and `TODO`s.
+- Code style: `.clang-format` (Google, 4 spaces, 100 columns). Constants `kName`, `constexpr` instead of `#define`.
+- Build and upload from the terminal (the user does not reopen VS Code as a workspace):
+  `pio run -d projects/NN-name` and `pio run -d projects/NN-name -t upload`.
 - Each project has a README: goal, wiring table (ESP32 pin → module pin, power), result.
 - **The repository is public (MIT license).** Never commit secrets: Wi-Fi passwords, API keys, tokens,
   private keys. They go to `secrets.h` (git-ignored); commit only `secrets.example.h`.

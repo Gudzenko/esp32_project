@@ -25,7 +25,7 @@ to the user, and **do not run sudo commands yourself** — give the user the com
 | Adapter found but no `/dev/ttyUSB*` | `brltty` grabbed it: `sudo apt remove brltty`, replug |
 | Not in `dialout` | `sudo usermod -aG dialout $USER`, then log out / log in |
 | In `dialout` in system, not in session | Log out / log in (VS Code restart is not enough) |
-| No udev rules | See `docs/setup.md`, step 3 |
+| No udev rules, or `pio` says "udev rules are outdated" | See `docs/setup.md`, step 4 |
 | `pio` not found | `ln -sf ~/.platformio/penv/bin/pio ~/.local/bin/pio` |
 | No espressif32 platform | See `docs/setup.md`, step 5 |
 | esptool `Failed to connect` | Close Serial Monitor (port busy); hold BOOT, press EN, release BOOT; try lower speed |
