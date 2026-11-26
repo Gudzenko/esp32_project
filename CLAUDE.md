@@ -33,6 +33,7 @@ The user knows Python well and C++ only at a basic level. Talk to the user in Ru
 - Python for tools on the PC (scripts, plotting, data).
 - Environment setup: `docs/setup.md`. Problems with the board connection: skill `esp32-env-check`.
 - Build, upload, read serial output: skill `esp32-build-flash`. Known problems: `docs/known-issues.md`.
+- How we write firmware (patterns, 3.x pitfalls, wiring checklist, new project/library): skill `esp32-arduino-patterns`.
 - Shared PlatformIO settings: `platformio-common.ini` (each project `extends = common_esp32`).
 
 ## Repository layout
@@ -58,4 +59,5 @@ Planned layout. Create folders only when the first real content appears.
 - **The repository is public (MIT license).** Never commit secrets: Wi-Fi passwords, API keys, tokens,
   private keys. They go to `secrets.h` (git-ignored); commit only `secrets.example.h`.
   Before every commit, check the staged diff for secrets and warn the user if something looks private.
-- Commit after each working step (only when the user asks).
+- **Commit only after the user has reviewed all changes and explicitly confirmed.** Finish the work,
+  show what changed, then wait for the confirmation before `git commit` / `git push`.

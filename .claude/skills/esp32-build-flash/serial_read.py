@@ -7,6 +7,8 @@ import serial
 
 BITS_PER_BYTE = 10
 JUNK_BYTES = b"\x00\x80"
+BOOT_LOG_PREFIXES = ("ets ", "rst:", "configsip:", "clk_drv:", "mode:DIO", "mode:QIO", "load:0x",
+                     "ho 0 tail", "entry 0x")
 
 
 def parse_args():
@@ -15,7 +17,15 @@ def parse_args():
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--seconds", type=float, default=5.0, help="how long to read after reset")
     parser.add_argument("--no-reset", action="store_true", help="do not reset the board")
+    parser.add_argument("--no-boot-log", action="store_true",
+                        help="hide the ROM bootloader lines (ets, rst:, load:, ...)")
     return parser.parse_args()
+
+
+def hide_boot_log(text):
+    lines = text.split("\n")
+    kept = [line for line in lines if not line.startswith(BOOT_LOG_PREFIXES)]
+    return "\n".join(kept).lstrip("\n")
 
 
 def find_port():
@@ -89,7 +99,10 @@ def main():
         print(f"--- removed {junk} junk bytes (0x00/0x80)", file=sys.stderr)
     if len(data) > max_bytes * 1.1:
         print(f"--- WARNING: more data than {args.baud} baud can carry: replayed data", file=sys.stderr)
-    sys.stdout.write(clean.decode("utf-8", "replace").replace("\r\n", "\n"))
+    text = clean.decode("utf-8", "replace").replace("\r\n", "\n")
+    if args.no_boot_log:
+        text = hide_boot_log(text)
+    sys.stdout.write(text)
 
 
 if __name__ == "__main__":

@@ -36,7 +36,8 @@ Success: `Hash of data verified.` for every image and `[SUCCESS]`.
 ```
 
 It drops stale/replayed data (see `docs/known-issues.md`), resets the board via RTS and prints
-the output from the start. Options: `--port`, `--baud` (default 115200), `--no-reset`.
+the output from the start. Options: `--port`, `--baud` (default 115200), `--no-reset`,
+`--no-boot-log` (hide ROM bootloader lines; keep them when looking for the reset reason or a crash).
 Lines starting with `---` are script info (stderr).
 
 Compare the output with what the code should print. Report the result to the user.
