@@ -18,7 +18,7 @@ The user knows Python well and C++ only at a basic level. Talk to the user in Ru
 ## Hardware
 
 - Board: ESP32 DevKit (ESP-WROOM-32, CP2102 USB-UART), 4 MB flash, no PSRAM. Two boards.
-- Serial port: `/dev/ttyUSB0`.
+- Serial port: usually `/dev/ttyUSB0`. It can change (second board, replug) – check with `pio device list`.
 - Logic level is **3.3 V**. Never put 5 V on a GPIO.
 - Do not use GPIO6–11 (flash). GPIO34–39 are input only, no pull-ups.
 - Boot pins GPIO0, 2, 12, 15: be careful (GPIO12 high at boot breaks boot).
@@ -28,7 +28,10 @@ The user knows Python well and C++ only at a basic level. Talk to the user in Ru
 ## Stack
 
 - C++ with PlatformIO + Arduino-ESP32 framework, edited in VS Code.
+- Platform: pioarduino `55.03.313` = Arduino-ESP32 **3.3.13** + ESP-IDF 5.5 (version is pinned).
+  Many examples on the internet are for Arduino-ESP32 2.x – check the API (e.g. LEDC/PWM changed in 3.x).
 - Python for tools on the PC (scripts, plotting, data).
+- Environment setup: `docs/setup.md`. Problems with the board connection: skill `esp32-env-check`.
 
 ## Repository layout
 
@@ -45,5 +48,7 @@ Planned layout. Create folders only when the first real content appears.
 
 - Code, comments and docs: English. Docs are short and simple.
 - Each project has a README: goal, wiring table (ESP32 pin → module pin, power), result.
-- Wi-Fi passwords and other secrets go to `secrets.h` (git-ignored). Commit only `secrets.example.h`.
+- **The repository is public (MIT license).** Never commit secrets: Wi-Fi passwords, API keys, tokens,
+  private keys. They go to `secrets.h` (git-ignored); commit only `secrets.example.h`.
+  Before every commit, check the staged diff for secrets and warn the user if something looks private.
 - Commit after each working step (only when the user asks).

@@ -41,7 +41,7 @@ Open VS Code and wait until PlatformIO Core is installed (notifications in the b
 then reload the window. Make `pio` available in any terminal:
 
 ```bash
-ln -s ~/.platformio/penv/bin/pio ~/.local/bin/pio
+ln -sf ~/.platformio/penv/bin/pio ~/.local/bin/pio
 pio --version
 ```
 

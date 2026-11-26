@@ -5,6 +5,7 @@ Learning the ESP32 step by step: LEDs, buttons, sensors, wireless, motors – an
 - Board: ESP32 DevKit (ESP-WROOM-32, CP2102)
 - Language: C++ (Arduino framework)
 - Tools: VS Code + PlatformIO
+- License: [MIT](LICENSE)
 
 ## Setup
 
