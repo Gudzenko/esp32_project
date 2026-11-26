@@ -45,6 +45,14 @@ When unsure, check the header in `~/.platformio/packages/framework-arduinoespres
 PWM: LEDC hardware, 5 kHz, 12 bit is a good default for LEDs (8 bit shows steps at low brightness).
 The eye sees brightness non-linearly: use `level²` or `level³` for smooth fades.
 
+## Memory
+
+- App size limit = app partition size, not 4 MB. Use `min_spiffs.csv` (2 × 1.9 MB with OTA)
+  when Wi-Fi/web is used; `huge_app.csv` (3 MB, no OTA) only if really needed.
+- Settings go to NVS (`Preferences`), not to the file system.
+- Heavy parts: Wi-Fi + web ~1 MB, Bluetooth 250–500 KB. Sensor/motor libraries are small.
+- Details and measured numbers: `docs/memory.md`.
+
 ## Hardware checklist (before wiring)
 
 - Logic is **3.3 V**. A 5 V output (e.g. HC-SR04 Echo) needs a divider or a level shifter.
