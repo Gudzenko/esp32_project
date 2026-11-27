@@ -1,5 +1,7 @@
 #include "Protocol.h"
 
+#include <cinttypes>
+
 #include "Log.h"
 #include "Names.h"
 
@@ -10,7 +12,7 @@ constexpr const char* kLayer = "protocol";
 void logRequestError(const char* code, const std::string& message, JsonVariantConst request) {
     const JsonVariantConst id = request["id"];
     if (id.is<uint32_t>()) {
-        logWarn(kLayer, "%s: %s, id %lu", code, message.c_str(), id.as<uint32_t>());
+        logWarn(kLayer, "%s: %s, id %" PRIu32, code, message.c_str(), id.as<uint32_t>());
     } else {
         logWarn(kLayer, "%s: %s", code, message.c_str());
     }

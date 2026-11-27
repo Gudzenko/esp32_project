@@ -55,11 +55,16 @@ What the board has. Clients call it after connecting.
 ```json
 → {"id": 1, "cmd": "describe"}
 ← {"id": 1, "time": 1200, "status": "ok", "data": {
-     "board": "esp32-01", "firmware": "0.1.0", "protocol": 1,
+     "board": "esp32", "firmware": "0.1.0", "protocol": 1,
      "devices": {
-       "led": {"type": "led", "props": {"mode": {"values": ["off", "linear", "quadratic", "cubic", "blink"]}}},
-       "motor_left": {"type": "motor", "props": {"speed": {"min": -100, "max": 100}, "current": {"readonly": true}}}}}}
+       "led": {"type": "led", "props": {
+         "mode": {"values": ["off", "linear", "quadratic", "cubic", "blink"]},
+         "duty": {"min": 0, "max": 4095, "readonly": true}}},
+       "boot": {"type": "button", "props": {"pressed": {"readonly": true}}}}}}
 ```
+
+Several devices can have the same type (for example `motor_left` and `motor_right` of type `motor`):
+the name is unique, the type tells the client which controls to show.
 
 Property description: `values` (list of allowed values), `min`/`max` (number range), `readonly`.
 

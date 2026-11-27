@@ -48,6 +48,9 @@ void WsServer::handleEvent(uint8_t client, WStype_t type, uint8_t* payload, size
         case WStype_DISCONNECTED:
             onDisconnected(client);
             break;
+        case WStype_ERROR:
+            logWarn(kLayer, "client %u error", client);
+            break;
         case WStype_TEXT:
         case WStype_BIN:
             if (client == activeClient_ && messageHandler_) {

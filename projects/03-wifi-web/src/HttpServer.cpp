@@ -26,6 +26,7 @@ void HttpServer::update() {
 }
 
 void HttpServer::sendPage() {
+    server_.sendHeader("Cache-Control", "no-cache");
     server_.send(kStatusOk, "text/html", kIndexHtml);
 }
 
