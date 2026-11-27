@@ -30,19 +30,20 @@ A message from the board is:
 
 ```json
 → {"id": 7, "cmd": "set", "device": "led", "data": {"mode": "blink"}}
-← {"id": 7, "time": 152340, "status": "ok", "device": "led", "data": {"mode": "blink"}}
+← {"id": 7, "time": 152340, "status": "ok", "device": "led", "data": {"mode": "blink", "duty": 4095}}
 ```
 
+The response has the full device state after the change.
 Several properties can be set at once. **All or nothing:** if one value is wrong, nothing changes.
 
 ### get
 
 ```json
 → {"id": 8, "cmd": "get", "device": "led"}
-← {"id": 8, "time": 152400, "status": "ok", "device": "led", "data": {"mode": "blink"}}
+← {"id": 8, "time": 152400, "status": "ok", "device": "led", "data": {"mode": "blink", "duty": 0}}
 
 → {"id": 9, "cmd": "get"}
-← {"id": 9, "time": 152410, "status": "ok", "data": {"led": {"mode": "blink"}}}
+← {"id": 9, "time": 152410, "status": "ok", "data": {"led": {"mode": "blink", "duty": 0}}}
 ```
 
 Without `device`, the board returns the state of all devices.

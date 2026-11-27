@@ -1,6 +1,9 @@
 #include <Arduino.h>
 
+#include "Devices.h"
 #include "HttpServer.h"
+#include "Led.h"
+#include "LedDevice.h"
 #include "Log.h"
 #include "Protocol.h"
 #include "Uptime.h"
@@ -19,26 +22,13 @@ WifiLink wifi(secrets::kWifiSsid, secrets::kWifiPassword, config::kBoardName,
               config::kWifiRetryIntervalMs);
 HttpServer http(config::kHttpPort);
 WsServer ws(config::kWsPort);
-Protocol protocol(config::kBoardName, config::kFirmwareVersion, config::kProtocolVersion);
+Led led(config::kLedName, config::kLedPin);
+LedDevice ledDevice(led);
+Devices devices({&ledDevice});
+Protocol protocol(config::kBoardName, config::kFirmwareVersion, config::kProtocolVersion,
+                  devices);
 
-bool ledOn = false;
 bool serversStarted = false;
-
-void setLed(bool on) {
-    if (on == ledOn) {
-        return;
-    }
-    ledOn = on;
-    digitalWrite(config::kLedPin, on ? HIGH : LOW);
-}
-
-void updateStatusLed(uint32_t now) {
-    if (wifi.isConnected()) {
-        setLed(true);
-        return;
-    }
-    setLed((now / config::kLedBlinkIntervalMs) % 2 == 0);
-}
 
 void startServers() {
     http.begin();
@@ -68,8 +58,10 @@ std::string busyResponse() {
 
 void setup() {
     Serial.begin(config::kSerialBaud);
-    pinMode(config::kLedPin, OUTPUT);
     logInfo("main", "%s started, firmware %s", config::kBoardName, config::kFirmwareVersion);
+    if (!led.begin()) {
+        logError("main", "LED PWM setup failed");
+    }
     ws.onMessage(handleMessage);
     ws.onBusy(busyResponse);
     wifi.begin();
@@ -79,5 +71,5 @@ void loop() {
     const uint32_t now = millis();
     wifi.update(now);
     updateServers();
-    updateStatusLed(now);
+    led.update(now);
 }

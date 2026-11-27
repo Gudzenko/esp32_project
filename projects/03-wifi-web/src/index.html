@@ -9,6 +9,9 @@
   body { font-family: sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
   #status { font-weight: bold; }
   .hint { color: #666; font-size: 0.85rem; }
+  fieldset { margin-bottom: 1rem; }
+  .prop { margin: 0.3rem 0; }
+  .prop button.active { font-weight: bold; }
   #log { background: #f4f4f4; padding: 0.5rem; height: 20rem; overflow-y: auto; font-size: 0.85rem; }
 </style>
 </head>
@@ -19,6 +22,7 @@
   <button class="request" data-cmd="describe" disabled>describe</button>
   <button class="request" data-cmd="get" disabled>get</button>
 </p>
+<div id="devices"></div>
 <p class="hint">Browser console (F12): <code>send({cmd: "foo"})</code>, <code>sendRaw("not json")</code></p>
 <pre id="log"></pre>
 <script>
@@ -36,6 +40,7 @@ const Status = {
 
 const statusView = document.getElementById("status");
 const requestButtons = document.querySelectorAll("button.request");
+const devicesView = document.getElementById("devices");
 const logView = document.getElementById("log");
 
 let socket = null;
@@ -58,7 +63,7 @@ function log(direction, text) {
 
 function setStatus(status) {
   statusView.textContent = status;
-  for (const button of requestButtons) {
+  for (const button of document.querySelectorAll("button")) {
     button.disabled = status !== Status.connected;
   }
 }
@@ -82,7 +87,7 @@ function send(request, quiet = false) {
   }
   const message = { id: nextId++, ...request };
   const text = JSON.stringify(message);
-  pending.set(message.id, { quiet, sentAt: Date.now() });
+  pending.set(message.id, { quiet, cmd: request.cmd, sentAt: Date.now() });
   socket.send(text);
   if (!quiet) {
     log("->", text);
@@ -132,11 +137,71 @@ function onMessage(event) {
   boardBusy = message.error?.code === "busy";
   const request = pending.get(message.id);
   pending.delete(message.id);
+  if (message.status === "ok") {
+    applyResponse(request?.cmd, message);
+  }
   if (request?.quiet && message.status === "ok") {
     return;
   }
   const roundTrip = request ? ` (${Date.now() - request.sentAt} ms)` : "";
   log("<-", event.data + roundTrip);
+}
+
+function applyResponse(cmd, message) {
+  if (cmd === "describe") {
+    renderDevices(message.data.devices);
+  } else if ((cmd === "get" || cmd === "set") && message.device) {
+    showValues(message.device, message.data);
+  } else if (cmd === "get") {
+    for (const [device, values] of Object.entries(message.data)) {
+      showValues(device, values);
+    }
+  }
+}
+
+function renderDevices(devices) {
+  devicesView.replaceChildren();
+  for (const [device, description] of Object.entries(devices)) {
+    const box = document.createElement("fieldset");
+    const legend = document.createElement("legend");
+    legend.textContent = `${device} (${description.type})`;
+    box.append(legend);
+    for (const [prop, info] of Object.entries(description.props)) {
+      box.append(renderProp(device, prop, info));
+    }
+    devicesView.append(box);
+  }
+}
+
+function renderProp(device, prop, info) {
+  const row = document.createElement("div");
+  row.className = "prop";
+  row.dataset.device = device;
+  row.dataset.prop = prop;
+  const value = document.createElement("span");
+  value.className = "value";
+  row.append(`${prop}: `, value, " ");
+  for (const option of info.values ?? []) {
+    const button = document.createElement("button");
+    button.textContent = option;
+    button.dataset.value = option;
+    button.onclick = () => send({ cmd: "set", device, data: { [prop]: option } });
+    row.append(button, " ");
+  }
+  return row;
+}
+
+function showValues(device, values) {
+  for (const [prop, value] of Object.entries(values)) {
+    const row = devicesView.querySelector(`[data-device="${device}"][data-prop="${prop}"]`);
+    if (!row) {
+      continue;
+    }
+    row.querySelector(".value").textContent = value;
+    for (const button of row.querySelectorAll("button")) {
+      button.classList.toggle("active", button.dataset.value === String(value));
+    }
+  }
 }
 
 function checkBoardRestart(time) {

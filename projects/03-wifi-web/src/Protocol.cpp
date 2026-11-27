@@ -29,23 +29,27 @@ std::string serialize(const JsonDocument& document) {
 
 }  // namespace
 
-Protocol::Protocol(const char* boardName, const char* firmwareVersion, int protocolVersion)
-    : boardName_(boardName), firmwareVersion_(firmwareVersion), protocolVersion_(protocolVersion) {}
+Protocol::Protocol(const char* boardName, const char* firmwareVersion, int protocolVersion,
+                   Devices& devices)
+    : boardName_(boardName),
+      firmwareVersion_(firmwareVersion),
+      protocolVersion_(protocolVersion),
+      devices_(devices) {}
 
-std::string Protocol::handle(const char* text, size_t length, uint64_t timeMs) const {
+std::string Protocol::handle(const char* text, size_t length, uint64_t timeMs) {
     JsonDocument request;
     const DeserializationError parseError = deserializeJson(request, text, length);
     if (parseError) {
-        const Error error{ErrorCode::kBadJson, nullptr,
-                          std::string("invalid JSON: ") + parseError.c_str()};
-        logRequestError(codeName(error.code), error.message, JsonVariantConst());
+        const ProtocolError error{ErrorCode::kBadJson, "",
+                                  std::string("invalid JSON: ") + parseError.c_str()};
+        logRequestError(errorCodeName(error.code), error.message, JsonVariantConst());
         return errorResponse(JsonVariantConst(), timeMs, error);
     }
 
     JsonDocument response;
-    const std::optional<Error> error = execute(request.as<JsonVariantConst>(), timeMs, response);
+    const Result error = execute(request.as<JsonVariantConst>(), timeMs, response);
     if (error) {
-        logRequestError(codeName(error->code), error->message, request.as<JsonVariantConst>());
+        logRequestError(errorCodeName(error->code), error->message, request.as<JsonVariantConst>());
         return errorResponse(request.as<JsonVariantConst>(), timeMs, *error);
     }
     return serialize(response);
@@ -53,66 +57,48 @@ std::string Protocol::handle(const char* text, size_t length, uint64_t timeMs) c
 
 std::string Protocol::busyError(uint64_t timeMs) const {
     return errorResponse(JsonVariantConst(), timeMs,
-                         {ErrorCode::kBusy, nullptr, "another client is connected"});
+                         {ErrorCode::kBusy, "", "another client is connected"});
 }
 
-const char* Protocol::codeName(ErrorCode code) {
-    switch (code) {
-        case ErrorCode::kBadJson:
-            return "bad_json";
-        case ErrorCode::kBadRequest:
-            return "bad_request";
-        case ErrorCode::kMissingId:
-            return "missing_id";
-        case ErrorCode::kUnknownCmd:
-            return "unknown_cmd";
-        case ErrorCode::kUnknownDevice:
-            return "unknown_device";
-        case ErrorCode::kBusy:
-            return "busy";
-    }
-    return "unknown";
-}
-
-std::optional<Protocol::Error> Protocol::execute(JsonVariantConst request, uint64_t timeMs,
-                                                 JsonDocument& response) const {
-    const std::optional<Error> invalid = validate(request);
+Protocol::Result Protocol::execute(JsonVariantConst request, uint64_t timeMs,
+                                   JsonDocument& response) {
+    const Result invalid = validate(request);
     if (invalid) {
         return invalid;
     }
     response["id"] = request["id"];
     response["time"] = timeMs;
     response["status"] = "ok";
-    return dispatch(request["cmd"].as<const char*>(), request["device"], response);
+    return dispatch(request["cmd"].as<const char*>(), request, response);
 }
 
-std::optional<Protocol::Error> Protocol::validate(JsonVariantConst request) const {
+Protocol::Result Protocol::validate(JsonVariantConst request) const {
     if (!request.is<JsonObjectConst>()) {
-        return Error{ErrorCode::kBadRequest, nullptr, "message must be a JSON object"};
+        return ProtocolError{ErrorCode::kBadRequest, "", "message must be a JSON object"};
     }
     const JsonVariantConst id = request["id"];
     if (id.isNull()) {
-        return Error{ErrorCode::kMissingId, "id", "id is required"};
+        return ProtocolError{ErrorCode::kMissingId, "id", "id is required"};
     }
     if (!id.is<uint32_t>()) {
-        return Error{ErrorCode::kBadRequest, "id", "id must be a non-negative integer"};
+        return ProtocolError{ErrorCode::kBadRequest, "id", "id must be a non-negative integer"};
     }
     const JsonVariantConst cmd = request["cmd"];
     if (cmd.isNull()) {
-        return Error{ErrorCode::kBadRequest, "cmd", "cmd is required"};
+        return ProtocolError{ErrorCode::kBadRequest, "cmd", "cmd is required"};
     }
     if (!cmd.is<const char*>()) {
-        return Error{ErrorCode::kBadRequest, "cmd", "cmd must be a string"};
+        return ProtocolError{ErrorCode::kBadRequest, "cmd", "cmd must be a string"};
     }
     const JsonVariantConst device = request["device"];
     if (!device.isNull() && !device.is<const char*>()) {
-        return Error{ErrorCode::kBadRequest, "device", "device must be a string"};
+        return ProtocolError{ErrorCode::kBadRequest, "device", "device must be a string"};
     }
     return std::nullopt;
 }
 
-std::optional<Protocol::Error> Protocol::dispatch(const char* cmd, JsonVariantConst device,
-                                                  JsonDocument& response) const {
+Protocol::Result Protocol::dispatch(const char* cmd, JsonVariantConst request,
+                                    JsonDocument& response) {
     if (isCommand(cmd, "ping")) {
         return std::nullopt;
     }
@@ -121,41 +107,48 @@ std::optional<Protocol::Error> Protocol::dispatch(const char* cmd, JsonVariantCo
         return std::nullopt;
     }
     if (isCommand(cmd, "get")) {
-        return get(device, response);
+        return get(request["device"], response);
     }
     if (isCommand(cmd, "set")) {
-        return set(device);
+        return set(request["device"], request["data"], response);
     }
-    return Error{ErrorCode::kUnknownCmd, "cmd", std::string("unknown command: ") + cmd};
+    return ProtocolError{ErrorCode::kUnknownCmd, "cmd", std::string("unknown command: ") + cmd};
 }
 
 void Protocol::describe(JsonObject data) const {
     data["board"] = boardName_;
     data["firmware"] = firmwareVersion_;
     data["protocol"] = protocolVersion_;
-    data["devices"].to<JsonObject>();
+    devices_.describe(data["devices"].to<JsonObject>());
 }
 
-std::optional<Protocol::Error> Protocol::get(JsonVariantConst device,
-                                             JsonDocument& response) const {
-    if (!device.isNull()) {
-        return Error{ErrorCode::kUnknownDevice, "device",
-                     std::string("unknown device: ") + device.as<const char*>()};
-    }
-    response["data"].to<JsonObject>();
-    return std::nullopt;
-}
-
-std::optional<Protocol::Error> Protocol::set(JsonVariantConst device) const {
+Protocol::Result Protocol::get(JsonVariantConst device, JsonDocument& response) const {
     if (device.isNull()) {
-        return Error{ErrorCode::kBadRequest, "device", "device is required"};
+        devices_.getAll(response["data"].to<JsonObject>());
+        return std::nullopt;
     }
-    return Error{ErrorCode::kUnknownDevice, "device",
-                 std::string("unknown device: ") + device.as<const char*>()};
+    response["device"] = device;
+    return devices_.get(device.as<const char*>(), response["data"].to<JsonObject>());
+}
+
+Protocol::Result Protocol::set(JsonVariantConst device, JsonVariantConst values,
+                               JsonDocument& response) {
+    if (device.isNull()) {
+        return ProtocolError{ErrorCode::kBadRequest, "device", "device is required"};
+    }
+    if (values.isNull()) {
+        return ProtocolError{ErrorCode::kBadRequest, "data", "data is required"};
+    }
+    if (!values.is<JsonObjectConst>()) {
+        return ProtocolError{ErrorCode::kBadRequest, "data", "data must be an object"};
+    }
+    response["device"] = device;
+    return devices_.set(device.as<const char*>(), values.as<JsonObjectConst>(),
+                        response["data"].to<JsonObject>());
 }
 
 std::string Protocol::errorResponse(JsonVariantConst request, uint64_t timeMs,
-                                    const Error& error) const {
+                                    const ProtocolError& error) const {
     JsonDocument response;
     if (request["id"].is<uint32_t>()) {
         response["id"] = request["id"];
@@ -166,8 +159,8 @@ std::string Protocol::errorResponse(JsonVariantConst request, uint64_t timeMs,
         response["device"] = request["device"];
     }
     JsonObject details = response["error"].to<JsonObject>();
-    details["code"] = codeName(error.code);
-    if (error.field != nullptr) {
+    details["code"] = errorCodeName(error.code);
+    if (!error.field.empty()) {
         details["field"] = error.field;
     }
     details["message"] = error.message;

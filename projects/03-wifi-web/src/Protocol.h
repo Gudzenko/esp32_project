@@ -6,41 +6,30 @@
 #include <optional>
 #include <string>
 
+#include "Devices.h"
+#include "ProtocolError.h"
+
 class Protocol {
 public:
-    Protocol(const char* boardName, const char* firmwareVersion, int protocolVersion);
-    std::string handle(const char* text, size_t length, uint64_t timeMs) const;
+    Protocol(const char* boardName, const char* firmwareVersion, int protocolVersion,
+             Devices& devices);
+    std::string handle(const char* text, size_t length, uint64_t timeMs);
     std::string busyError(uint64_t timeMs) const;
 
 private:
-    enum class ErrorCode : uint8_t {
-        kBadJson,
-        kBadRequest,
-        kMissingId,
-        kUnknownCmd,
-        kUnknownDevice,
-        kBusy,
-    };
+    using Result = std::optional<ProtocolError>;
 
-    struct Error {
-        ErrorCode code;
-        const char* field;
-        std::string message;
-    };
-
-    static const char* codeName(ErrorCode code);
-
-    std::optional<Error> execute(JsonVariantConst request, uint64_t timeMs,
-                                 JsonDocument& response) const;
-    std::optional<Error> validate(JsonVariantConst request) const;
-    std::optional<Error> dispatch(const char* cmd, JsonVariantConst device,
-                                  JsonDocument& response) const;
+    Result execute(JsonVariantConst request, uint64_t timeMs, JsonDocument& response);
+    Result validate(JsonVariantConst request) const;
+    Result dispatch(const char* cmd, JsonVariantConst request, JsonDocument& response);
     void describe(JsonObject data) const;
-    std::optional<Error> get(JsonVariantConst device, JsonDocument& response) const;
-    std::optional<Error> set(JsonVariantConst device) const;
-    std::string errorResponse(JsonVariantConst request, uint64_t timeMs, const Error& error) const;
+    Result get(JsonVariantConst device, JsonDocument& response) const;
+    Result set(JsonVariantConst device, JsonVariantConst values, JsonDocument& response);
+    std::string errorResponse(JsonVariantConst request, uint64_t timeMs,
+                              const ProtocolError& error) const;
 
     const char* boardName_;
     const char* firmwareVersion_;
     int protocolVersion_;
+    Devices& devices_;
 };

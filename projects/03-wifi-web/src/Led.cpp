@@ -1,0 +1,108 @@
+#include "Led.h"
+
+#include <cstring>
+
+#include "Log.h"
+
+namespace {
+
+constexpr const char* kLayer = "led";
+
+float breathLevel(uint32_t now) {
+    const float phase =
+        static_cast<float>(now % config::kLedBreathPeriodMs) / config::kLedBreathPeriodMs;
+    return phase < 0.5f ? phase * 2.0f : 2.0f - phase * 2.0f;
+}
+
+uint32_t toDuty(float level) {
+    return static_cast<uint32_t>(level * Led::kMaxDuty + 0.5f);
+}
+
+}  // namespace
+
+Led::Led(const char* name, uint8_t pin) : name_(name), pin_(pin) {}
+
+const char* Led::name() const {
+    return name_;
+}
+
+bool Led::begin() {
+    if (!ledcAttach(pin_, config::kPwmFrequencyHz, config::kPwmResolutionBits)) {
+        return false;
+    }
+    ledcWrite(pin_, duty_);
+    return true;
+}
+
+void Led::update(uint32_t now) {
+    const uint32_t duty = dutyFor(now);
+    if (duty == duty_) {
+        return;
+    }
+    duty_ = duty;
+    ledcWrite(pin_, duty_);
+}
+
+void Led::setMode(Mode mode) {
+    if (mode == mode_) {
+        return;
+    }
+    mode_ = mode;
+    update(millis());
+    logInfo(kLayer, "%s mode %s", name_, modeName(mode_));
+}
+
+Led::Mode Led::mode() const {
+    return mode_;
+}
+
+uint32_t Led::duty() const {
+    return duty_;
+}
+
+const char* Led::modeName(Mode mode) {
+    switch (mode) {
+        case Mode::kOff:
+            return "off";
+        case Mode::kLinear:
+            return "linear";
+        case Mode::kQuadratic:
+            return "quadratic";
+        case Mode::kCubic:
+            return "cubic";
+        case Mode::kBlink:
+            return "blink";
+        case Mode::kCount:
+            break;
+    }
+    return "unknown";
+}
+
+std::optional<Led::Mode> Led::parseMode(const char* name) {
+    for (uint8_t i = 0; i < static_cast<uint8_t>(Mode::kCount); ++i) {
+        const Mode mode = static_cast<Mode>(i);
+        if (std::strcmp(name, modeName(mode)) == 0) {
+            return mode;
+        }
+    }
+    return std::nullopt;
+}
+
+uint32_t Led::dutyFor(uint32_t now) const {
+    const float level = breathLevel(now);
+    switch (mode_) {
+        case Mode::kOff:
+            return 0;
+        case Mode::kLinear:
+            return toDuty(level);
+        case Mode::kQuadratic:
+            return toDuty(level * level);
+        case Mode::kCubic:
+            return toDuty(level * level * level);
+        case Mode::kBlink:
+            return (now / config::kLedBlinkHalfPeriodMs) % 2 == 0 ? kMaxDuty : 0;
+        case Mode::kCount:
+            break;
+    }
+    return 0;
+}
