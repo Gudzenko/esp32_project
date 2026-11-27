@@ -1,13 +1,11 @@
 #include "WsServer.h"
 
 #include "Log.h"
-#include "Uptime.h"
 #include "config.h"
 
 namespace {
 
 constexpr const char* kLayer = "ws";
-constexpr size_t kBusyMessageLength = 160;
 
 }  // namespace
 
@@ -31,6 +29,10 @@ void WsServer::onMessage(MessageHandler handler) {
     messageHandler_ = std::move(handler);
 }
 
+void WsServer::onBusy(BusyResponder responder) {
+    busyResponder_ = std::move(responder);
+}
+
 void WsServer::send(const char* text, size_t length) {
     if (activeClient_ == kNoClient) {
         return;
@@ -47,6 +49,7 @@ void WsServer::handleEvent(uint8_t client, WStype_t type, uint8_t* payload, size
             onDisconnected(client);
             break;
         case WStype_TEXT:
+        case WStype_BIN:
             if (client == activeClient_ && messageHandler_) {
                 messageHandler_(reinterpret_cast<const char*>(payload), length);
             }
@@ -76,11 +79,9 @@ void WsServer::onDisconnected(uint8_t client) {
 
 void WsServer::rejectBusy(uint8_t client) {
     logWarn(kLayer, "rejected %s: busy", server_.remoteIP(client).toString().c_str());
-    char message[kBusyMessageLength];
-    const int length = snprintf(message, sizeof(message),
-                                "{\"time\": %llu, \"status\": \"error\", \"error\": {\"code\": "
-                                "\"busy\", \"message\": \"another client is connected\"}}",
-                                uptimeMs());
-    server_.sendTXT(client, message, length);
+    if (busyResponder_) {
+        const std::string response = busyResponder_();
+        server_.sendTXT(client, response.c_str(), response.size());
+    }
     server_.disconnect(client);
 }

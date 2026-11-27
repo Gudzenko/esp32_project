@@ -4,15 +4,18 @@
 #include <WebSocketsServer.h>
 
 #include <functional>
+#include <string>
 
 class WsServer {
 public:
     using MessageHandler = std::function<void(const char* text, size_t length)>;
+    using BusyResponder = std::function<std::string()>;
 
     explicit WsServer(uint16_t port);
     void begin();
     void update();
     void onMessage(MessageHandler handler);
+    void onBusy(BusyResponder responder);
     void send(const char* text, size_t length);
 
 private:
@@ -27,4 +30,5 @@ private:
     uint16_t port_;
     uint8_t activeClient_ = kNoClient;
     MessageHandler messageHandler_;
+    BusyResponder busyResponder_;
 };

@@ -2,6 +2,8 @@
 
 #include "HttpServer.h"
 #include "Log.h"
+#include "Protocol.h"
+#include "Uptime.h"
 #include "WifiLink.h"
 #include "WsServer.h"
 #include "config.h"
@@ -17,6 +19,7 @@ WifiLink wifi(secrets::kWifiSsid, secrets::kWifiPassword, config::kBoardName,
               config::kWifiRetryIntervalMs);
 HttpServer http(config::kHttpPort);
 WsServer ws(config::kWsPort);
+Protocol protocol(config::kBoardName, config::kFirmwareVersion, config::kProtocolVersion);
 
 bool ledOn = false;
 bool serversStarted = false;
@@ -54,15 +57,21 @@ void updateServers() {
     ws.update();
 }
 
-void echo(const char* text, size_t length) {
-    ws.send(text, length);
+void handleMessage(const char* text, size_t length) {
+    const std::string response = protocol.handle(text, length, uptimeMs());
+    ws.send(response.c_str(), response.size());
+}
+
+std::string busyResponse() {
+    return protocol.busyError(uptimeMs());
 }
 
 void setup() {
     Serial.begin(config::kSerialBaud);
     pinMode(config::kLedPin, OUTPUT);
     logInfo("main", "%s started, firmware %s", config::kBoardName, config::kFirmwareVersion);
-    ws.onMessage(echo);
+    ws.onMessage(handleMessage);
+    ws.onBusy(busyResponse);
     wifi.begin();
 }
 

@@ -94,6 +94,7 @@ The client that changed a value with `set` gets the response, not an event.
 | Code | When |
 |---|---|
 | `bad_json` | The message is not valid JSON |
+| `bad_request` | Valid JSON, but not a request: not an object, `id` not a non-negative integer, `cmd` or `device` not a string, a required field is missing |
 | `missing_id` | The request has no `id` |
 | `unknown_cmd` | No such command |
 | `unknown_device` | No such device |

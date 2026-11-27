@@ -3,7 +3,7 @@
 The board connects to the home Wi-Fi and is controlled over a WebSocket API.
 A simple web page served by the board is a test client of the same API.
 
-Status: **design, not implemented yet.**
+Status: **steps 1–4 of the plan are done.**
 
 ## Goal
 

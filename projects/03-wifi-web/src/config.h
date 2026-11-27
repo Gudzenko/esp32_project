@@ -7,6 +7,7 @@ namespace config {
 
 constexpr const char* kBoardName = "esp32";
 constexpr const char* kFirmwareVersion = "0.1.0";
+constexpr int kProtocolVersion = 1;
 
 constexpr uint32_t kSerialBaud = 115200;
 constexpr size_t kMaxLogLineLength = 256;

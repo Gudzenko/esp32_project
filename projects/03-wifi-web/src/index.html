@@ -8,20 +8,24 @@
 <style>
   body { font-family: sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
   #status { font-weight: bold; }
+  .hint { color: #666; font-size: 0.85rem; }
   #log { background: #f4f4f4; padding: 0.5rem; height: 20rem; overflow-y: auto; font-size: 0.85rem; }
 </style>
 </head>
 <body>
 <h1>ESP32</h1>
 <p>Connection: <span id="status"></span></p>
-<p><button id="send" disabled>Send test message</button></p>
+<p>
+  <button class="request" data-cmd="describe" disabled>describe</button>
+  <button class="request" data-cmd="get" disabled>get</button>
+</p>
+<p class="hint">Browser console (F12): <code>send({cmd: "foo"})</code>, <code>sendRaw("not json")</code></p>
 <pre id="log"></pre>
 <script>
 const kWsPort = 81;
 const kReconnectDelayMs = 5000;
 const kPingIntervalMs = 2500;
 const kSilenceTimeoutMs = 5000;
-const kPing = "ping";
 
 const Status = {
   connecting: "connecting",
@@ -31,14 +35,16 @@ const Status = {
 };
 
 const statusView = document.getElementById("status");
-const sendButton = document.getElementById("send");
+const requestButtons = document.querySelectorAll("button.request");
 const logView = document.getElementById("log");
 
 let socket = null;
 let checkTimer = null;
 let lastMessageAt = 0;
 let boardBusy = false;
-let testCount = 0;
+let nextId = 1;
+let lastBoardTime = null;
+const pending = new Map();
 
 function timeNow() {
   const now = new Date();
@@ -52,15 +58,49 @@ function log(direction, text) {
 
 function setStatus(status) {
   statusView.textContent = status;
-  sendButton.disabled = status !== Status.connected;
+  for (const button of requestButtons) {
+    button.disabled = status !== Status.connected;
+  }
 }
 
-function isBusyError(text) {
+function parseJson(text) {
   try {
-    return JSON.parse(text).error?.code === "busy";
+    return JSON.parse(text);
   } catch {
-    return false;
+    return null;
   }
+}
+
+function isConnected() {
+  return socket !== null && socket.readyState === WebSocket.OPEN;
+}
+
+function send(request, quiet = false) {
+  if (!isConnected()) {
+    log("--", "not connected");
+    return;
+  }
+  const message = { id: nextId++, ...request };
+  const text = JSON.stringify(message);
+  pending.set(message.id, { quiet, sentAt: Date.now() });
+  socket.send(text);
+  if (!quiet) {
+    log("->", text);
+  }
+}
+
+function sendRaw(text) {
+  if (!isConnected()) {
+    log("--", "not connected");
+    return;
+  }
+  socket.send(text);
+  log("->", text);
+}
+
+function requestState() {
+  send({ cmd: "describe" });
+  send({ cmd: "get" });
 }
 
 function connect() {
@@ -78,19 +118,40 @@ function onOpen() {
   lastMessageAt = Date.now();
   setStatus(Status.connected);
   log("--", "connected");
+  requestState();
 }
 
 function onMessage(event) {
   lastMessageAt = Date.now();
-  if (event.data === kPing) {
+  const message = parseJson(event.data);
+  if (message === null) {
+    log("<-", event.data);
     return;
   }
-  log("<-", event.data);
-  boardBusy = isBusyError(event.data);
+  checkBoardRestart(message.time);
+  boardBusy = message.error?.code === "busy";
+  const request = pending.get(message.id);
+  pending.delete(message.id);
+  if (request?.quiet && message.status === "ok") {
+    return;
+  }
+  const roundTrip = request ? ` (${Date.now() - request.sentAt} ms)` : "";
+  log("<-", event.data + roundTrip);
+}
+
+function checkBoardRestart(time) {
+  if (typeof time !== "number") {
+    return;
+  }
+  if (lastBoardTime !== null && time < lastBoardTime) {
+    log("--", "board restarted");
+  }
+  lastBoardTime = time;
 }
 
 function onClose() {
   clearInterval(checkTimer);
+  pending.clear();
   setStatus(boardBusy ? Status.busy : Status.lost);
   log("--", `closed, reconnect in ${kReconnectDelayMs / 1000} s`);
   setTimeout(connect, kReconnectDelayMs);
@@ -101,8 +162,8 @@ function checkConnection() {
     dropConnection("no answer from the board");
     return;
   }
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(kPing);
+  if (isConnected()) {
+    send({ cmd: "ping" }, true);
   }
 }
 
@@ -113,14 +174,9 @@ function dropConnection(reason) {
   onClose();
 }
 
-function sendTestMessage() {
-  testCount += 1;
-  const text = `test ${testCount}`;
-  socket.send(text);
-  log("->", text);
+for (const button of requestButtons) {
+  button.onclick = () => send({ cmd: button.dataset.cmd });
 }
-
-sendButton.onclick = sendTestMessage;
 connect();
 </script>
 </body>
