@@ -13,8 +13,12 @@ constexpr uint8_t kNoReason = 0;
 }  // namespace
 
 WifiLink::WifiLink(const char* ssid, const char* password, const char* hostName,
-                   uint32_t retryIntervalMs)
-    : ssid_(ssid), password_(password), hostName_(hostName), retryIntervalMs_(retryIntervalMs) {}
+                   const StaticIp& staticIp, uint32_t retryIntervalMs)
+    : ssid_(ssid),
+      password_(password),
+      hostName_(hostName),
+      staticIp_(staticIp),
+      retryIntervalMs_(retryIntervalMs) {}
 
 void WifiLink::begin() {
     WiFi.onEvent(
@@ -30,6 +34,9 @@ void WifiLink::begin() {
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     WiFi.setAutoReconnect(false);
+    if (!WiFi.config(staticIp_.address, staticIp_.gateway, staticIp_.subnet, staticIp_.gateway)) {
+        logError(kLayer, "static IP setup failed");
+    }
     logInfo(kLayer, "connecting to %s", ssid_);
     connect(millis());
 }

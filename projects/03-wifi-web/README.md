@@ -33,8 +33,8 @@ Four layers. A lower layer knows nothing about the upper ones.
 
 | Topic | Decision |
 |---|---|
-| Address | `esp32.local` (mDNS); the IP is printed to Serial. No router access for a DHCP reservation |
-| Wi-Fi | 2.4 GHz only (ESP32 limit). `WiFi.setSleep(false)`: fast replies, mDNS works reliably |
+| Address | Static IP from `secrets.h` (`.200`, far from the DHCP range; no router access for a DHCP reservation). `esp32.local` via mDNS is unreliable in this network: use `/etc/hosts` (see `docs/known-issues.md`) |
+| Wi-Fi | 2.4 GHz only (ESP32 limit). `WiFi.setSleep(false)`: fast replies (no 100–300 ms power-save delay) |
 | Clients | One at a time; the second gets `busy`. No password: anyone in the home network can connect (protection later) |
 | Page | Simple: connection state, LED buttons, message log. `index.html` is embedded into the firmware at build time (no file system). Reconnects every 5 s, then asks `describe` and `get` again |
 | Libraries | Built-in `WebServer`, `WebSockets` (links2004), `ArduinoJson` 7, versions pinned |

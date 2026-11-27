@@ -28,3 +28,19 @@
 - If there is garbage at the start, press **EN** on the board to restart it and get clean output.
 - The `esp32-build-flash` skill reads the port with a script that drops the garbage first.
 - Firmware upload is not affected (esptool verifies the hash of written data).
+
+## `esp32.local` does not resolve
+
+**Symptom:** the board works by IP, but `esp32.local` fails in the browser (`DNS_PROBE_FINISHED_NXDOMAIN`)
+and in `ping`. Sometimes it works for a short time after the board starts.
+
+**Findings:** the board's mDNS responder works. A query that asks for a direct (unicast) reply is
+answered every time. The normal multicast replies do not reach the PC: the home router (HALNy)
+drops them, on 2.4 GHz and 5 GHz. No access to the router settings.
+
+**Workaround:** static IP on the board (`secrets.h`, an address far from the DHCP range,
+e.g. `.200`) and a line in `/etc/hosts` on the PC:
+
+```bash
+echo "192.168.34.200 esp32 esp32.local" | sudo tee -a /etc/hosts
+```

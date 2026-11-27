@@ -4,10 +4,16 @@
 
 #include <atomic>
 
+struct StaticIp {
+    IPAddress address;
+    IPAddress gateway;
+    IPAddress subnet;
+};
+
 class WifiLink {
 public:
     WifiLink(const char* ssid, const char* password, const char* hostName,
-             uint32_t retryIntervalMs);
+             const StaticIp& staticIp, uint32_t retryIntervalMs);
     void begin();
     void update(uint32_t now);
     bool isConnected() const;
@@ -21,6 +27,7 @@ private:
     const char* ssid_;
     const char* password_;
     const char* hostName_;
+    StaticIp staticIp_;
     uint32_t retryIntervalMs_;
     bool connected_ = false;
     bool mdnsStarted_ = false;

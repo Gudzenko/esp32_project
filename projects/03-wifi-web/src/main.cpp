@@ -1,5 +1,6 @@
 #include <Arduino.h>
 
+#include "HttpServer.h"
 #include "Log.h"
 #include "WifiLink.h"
 #include "config.h"
@@ -11,7 +12,9 @@
 #endif
 
 WifiLink wifi(secrets::kWifiSsid, secrets::kWifiPassword, config::kBoardName,
+              {secrets::kStaticIp, secrets::kGateway, secrets::kSubnet},
               config::kWifiRetryIntervalMs);
+HttpServer http(config::kHttpPort);
 
 bool ledOn = false;
 
@@ -31,6 +34,16 @@ void updateStatusLed(uint32_t now) {
     setLed((now / config::kLedBlinkIntervalMs) % 2 == 0);
 }
 
+void updateHttp() {
+    if (!wifi.isConnected()) {
+        return;
+    }
+    if (!http.isStarted()) {
+        http.begin();
+    }
+    http.update();
+}
+
 void setup() {
     Serial.begin(config::kSerialBaud);
     pinMode(config::kLedPin, OUTPUT);
@@ -41,5 +54,6 @@ void setup() {
 void loop() {
     const uint32_t now = millis();
     wifi.update(now);
+    updateHttp();
     updateStatusLed(now);
 }

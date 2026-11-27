@@ -16,4 +16,6 @@ constexpr uint32_t kLedBlinkIntervalMs = 250;
 
 constexpr uint32_t kWifiRetryIntervalMs = 5000;
 
+constexpr uint16_t kHttpPort = 80;
+
 }  // namespace config

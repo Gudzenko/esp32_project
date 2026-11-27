@@ -72,3 +72,28 @@ pio device list                                                   # /dev/ttyUSB0
 
 Expected: `Chip type: ESP32-D0WD-V3`, `Detected flash size: 4MB`.
 This only reads info from the chip and does not change anything on the board.
+
+## 7. VS Code IntelliSense
+
+The repository root is opened in VS Code, not a single project, so the C/C++ extension does not
+find the Arduino headers ("cannot open source file Arduino.h"). Generate one compilation database
+for all projects (run again after adding a project or a library):
+
+```bash
+tools/compiledb.sh
+```
+
+It writes `compile_commands.json` to the repository root (git-ignored). Then set in
+`.vscode/c_cpp_properties.json` (in the active configuration):
+
+```json
+"compileCommands": "${workspaceFolder}/compile_commands.json",
+"compilerPath": "/home/<user>/.platformio/packages/toolchain-xtensa-esp-elf/bin/xtensa-esp32-elf-g++",
+"intelliSenseMode": "gcc-arm"
+```
+
+The C/C++ extension does not know the ESP32 (Xtensa) processor: it drops the compiler's
+`__XTENSA__` macro and some system include paths, so errors like `riscv/rv_utils.h` or
+`sys/reent.h` appear. The script adds them to every command. `gcc-arm` is the closest
+32-bit mode (correct `int`/`long`/pointer sizes).
+After a change: `Ctrl+Shift+P` → **C/C++: Reset IntelliSense Database**.
