@@ -1,32 +1,22 @@
 #include "Led.h"
 
-#include <cstring>
-
 #include "Log.h"
+#include "Names.h"
 
 namespace {
 
 constexpr const char* kLayer = "led";
 
-float breathLevel(uint32_t now) {
-    const float phase =
-        static_cast<float>(now % config::kLedBreathPeriodMs) / config::kLedBreathPeriodMs;
-    return phase < 0.5f ? phase * 2.0f : 2.0f - phase * 2.0f;
-}
-
-uint32_t toDuty(float level) {
-    return static_cast<uint32_t>(level * Led::kMaxDuty + 0.5f);
-}
-
 }  // namespace
 
-Led::Led(uint8_t pin) : pin_(pin) {}
+Led::Led(const LedSettings& settings)
+    : settings_(settings), maxDuty_((1u << settings.pwmResolutionBits) - 1) {}
 
 bool Led::begin() {
-    if (!ledcAttach(pin_, config::kPwmFrequencyHz, config::kPwmResolutionBits)) {
+    if (!ledcAttach(settings_.pin, settings_.pwmFrequencyHz, settings_.pwmResolutionBits)) {
         return false;
     }
-    ledcWrite(pin_, duty_);
+    ledcWrite(settings_.pin, duty_);
     return true;
 }
 
@@ -36,7 +26,7 @@ void Led::update(uint32_t now) {
         return;
     }
     duty_ = duty;
-    ledcWrite(pin_, duty_);
+    ledcWrite(settings_.pin, duty_);
 }
 
 void Led::setMode(Mode mode) {
@@ -45,7 +35,7 @@ void Led::setMode(Mode mode) {
     }
     mode_ = mode;
     update(millis());
-    logInfo(kLayer, "pin %u mode %s", pin_, modeName(mode_));
+    logInfo(kLayer, "pin %u mode %s", settings_.pin, modeName(mode_));
     for (const Listener& listener : listeners_) {
         listener();
     }
@@ -61,6 +51,10 @@ Led::Mode Led::mode() const {
 
 uint32_t Led::duty() const {
     return duty_;
+}
+
+uint32_t Led::maxDuty() const {
+    return maxDuty_;
 }
 
 const char* Led::modeName(Mode mode) {
@@ -84,7 +78,7 @@ const char* Led::modeName(Mode mode) {
 std::optional<Led::Mode> Led::parseMode(const char* name) {
     for (uint8_t i = 0; i < static_cast<uint8_t>(Mode::kCount); ++i) {
         const Mode mode = static_cast<Mode>(i);
-        if (std::strcmp(name, modeName(mode)) == 0) {
+        if (sameName(name, modeName(mode))) {
             return mode;
         }
     }
@@ -108,9 +102,19 @@ uint32_t Led::dutyFor(uint32_t now) const {
         case Mode::kCubic:
             return toDuty(level * level * level);
         case Mode::kBlink:
-            return (now / config::kLedBlinkHalfPeriodMs) % 2 == 0 ? kMaxDuty : 0;
+            return (now / settings_.blinkHalfPeriodMs) % 2 == 0 ? maxDuty_ : 0;
         case Mode::kCount:
             break;
     }
     return 0;
+}
+
+float Led::breathLevel(uint32_t now) const {
+    const float phase =
+        static_cast<float>(now % settings_.breathPeriodMs) / settings_.breathPeriodMs;
+    return phase < 0.5f ? phase * 2.0f : 2.0f - phase * 2.0f;
+}
+
+uint32_t Led::toDuty(float level) const {
+    return static_cast<uint32_t>(level * maxDuty_ + 0.5f);
 }

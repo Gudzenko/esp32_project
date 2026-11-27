@@ -1,7 +1,6 @@
 #include "ButtonDevice.h"
 
-#include <cstring>
-#include <string>
+#include "Names.h"
 
 namespace {
 
@@ -30,14 +29,10 @@ void ButtonDevice::get(JsonObject data) const {
 }
 
 std::optional<ProtocolError> ButtonDevice::set(JsonObjectConst values, JsonObject data) {
-    for (JsonPairConst value : values) {
-        const char* prop = value.key().c_str();
-        if (std::strcmp(prop, kPressed) == 0) {
-            return ProtocolError{ErrorCode::kReadOnly, kPressed, "pressed is read-only"};
-        }
-        return ProtocolError{ErrorCode::kUnknownProp, prop,
-                             std::string("unknown property: ") + prop};
+    if (values.size() == 0) {
+        get(data);
+        return std::nullopt;
     }
-    get(data);
-    return std::nullopt;
+    const char* prop = values.begin()->key().c_str();
+    return sameName(prop, kPressed) ? readOnly(kPressed) : unknownProp(prop);
 }

@@ -1,16 +1,13 @@
 #include "LedDevice.h"
 
-#include <cstring>
 #include <string>
+
+#include "Names.h"
 
 namespace {
 
 constexpr const char* kMode = "mode";
 constexpr const char* kDuty = "duty";
-
-bool isName(const char* name, const char* expected) {
-    return std::strcmp(name, expected) == 0;
-}
 
 std::string allowedModes() {
     std::string text = "allowed:";
@@ -42,7 +39,7 @@ void LedDevice::describe(JsonObject props) const {
     }
     JsonObject duty = props[kDuty].to<JsonObject>();
     duty["min"] = 0;
-    duty["max"] = Led::kMaxDuty;
+    duty["max"] = led_.maxDuty();
     duty["readonly"] = true;
 }
 
@@ -55,17 +52,16 @@ std::optional<ProtocolError> LedDevice::set(JsonObjectConst values, JsonObject d
     std::optional<Led::Mode> newMode;
     for (JsonPairConst value : values) {
         const char* prop = value.key().c_str();
-        if (isName(prop, kDuty)) {
-            return ProtocolError{ErrorCode::kReadOnly, kDuty, "duty is read-only"};
+        if (sameName(prop, kDuty)) {
+            return readOnly(kDuty);
         }
-        if (!isName(prop, kMode)) {
-            return ProtocolError{ErrorCode::kUnknownProp, prop,
-                                 std::string("unknown property: ") + prop};
+        if (!sameName(prop, kMode)) {
+            return unknownProp(prop);
         }
         const char* name = value.value().as<const char*>();
         newMode = name != nullptr ? Led::parseMode(name) : std::nullopt;
         if (!newMode) {
-            return ProtocolError{ErrorCode::kBadValue, kMode, allowedModes()};
+            return badValue(kMode, allowedModes());
         }
     }
     if (newMode) {

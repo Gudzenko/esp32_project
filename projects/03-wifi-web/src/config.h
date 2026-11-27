@@ -25,6 +25,7 @@ constexpr uint32_t kWifiRetryIntervalMs = 5000;
 
 constexpr uint16_t kHttpPort = 80;
 
+// TODO: the page has the same port in index.html (kWsPort); change both together.
 constexpr uint16_t kWsPort = 81;
 constexpr uint32_t kWsPingIntervalMs = 2500;
 constexpr uint32_t kWsPongTimeoutMs = 2000;

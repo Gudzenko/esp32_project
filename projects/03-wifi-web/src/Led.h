@@ -6,21 +6,27 @@
 #include <optional>
 #include <vector>
 
-#include "config.h"
+struct LedSettings {
+    uint8_t pin;
+    uint32_t pwmFrequencyHz;
+    uint8_t pwmResolutionBits;
+    uint32_t breathPeriodMs;
+    uint32_t blinkHalfPeriodMs;
+};
 
 class Led {
 public:
     enum class Mode : uint8_t { kOff, kLinear, kQuadratic, kCubic, kBlink, kCount };
-    static constexpr uint32_t kMaxDuty = (1u << config::kPwmResolutionBits) - 1;
 
     using Listener = std::function<void()>;
 
-    explicit Led(uint8_t pin);
+    explicit Led(const LedSettings& settings);
     bool begin();
     void update(uint32_t now);
     void setMode(Mode mode);
     Mode mode() const;
     uint32_t duty() const;
+    uint32_t maxDuty() const;
     void addListener(Listener listener);
 
     static const char* modeName(Mode mode);
@@ -29,8 +35,11 @@ public:
 
 private:
     uint32_t dutyFor(uint32_t now) const;
+    float breathLevel(uint32_t now) const;
+    uint32_t toDuty(float level) const;
 
-    uint8_t pin_;
+    LedSettings settings_;
+    uint32_t maxDuty_;
     Mode mode_ = Mode::kOff;
     uint32_t duty_ = 0;
     std::vector<Listener> listeners_;

@@ -25,6 +25,8 @@ Layers. A lower layer knows nothing about the upper ones.
 | Behavior | `Controller`: rules "when X happens, do Y" (BOOT pressed → next LED mode). Knows the hardware classes, nothing about JSON or the network | – |
 
 - Everything runs in `loop()`, one thread, no `delay()`. Each layer has a short non-blocking `update()`.
+- `Connectivity` holds the network and connection layers (`WifiLink`, `HttpServer`, `WsServer`):
+  it starts the servers after Wi-Fi connects. `main.cpp` only creates objects and connects them.
 - Two directions: request → response, and events from the board (button) → client, if connected.
 - Board states: starting → connecting to Wi-Fi → online, no client → client connected.
   The logic works in all states. When Wi-Fi or the client is lost, the board steps back and waits.
@@ -76,11 +78,25 @@ Details are decided during the work; this plan and the README are updated as we 
 After the last step: result in this README, project added to the root README,
 review what goes to `lib/`, skills or docs.
 
+## Tests
+
+Automatic tests talk to the running board over the network (the firmware is not uploaded again).
+They check the protocol, every error code, the LED, events and the connection rules.
+
+```bash
+python3 -m pytest tools/board_tests              # board at esp32.local
+python3 -m pytest tools/board_tests --board 192.168.34.200
+```
+
+- Needs `pytest` and `websockets` for Python (`sudo apt install python3-pytest python3-websockets`).
+- **Close the web page first:** the board accepts one client, the page would make the tests get `busy`.
+- Pressing BOOT cannot be automated: check it on the page (three events: `boot` pressed, `led` mode,
+  `boot` released).
+
 ## Later
 
 - Fallback access point when the home Wi-Fi is not available
 - Firmware update over Wi-Fi (OTA)
 - Several sensor samples in one message
-- Tests on the PC (`pio test -e native`), not part of the firmware
-- Python tool for the API
+- Unit tests on the PC (`pio test -e native`), not part of the firmware
 - Access protection

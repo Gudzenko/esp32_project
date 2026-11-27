@@ -26,6 +26,7 @@
 <p class="hint">Browser console (F12): <code>send({cmd: "foo"})</code>, <code>sendRaw("not json")</code></p>
 <pre id="log"></pre>
 <script>
+// TODO: the same port is config::kWsPort in config.h; change both together.
 const kWsPort = 81;
 const kReconnectDelayMs = 5000;
 const kPingIntervalMs = 2500;

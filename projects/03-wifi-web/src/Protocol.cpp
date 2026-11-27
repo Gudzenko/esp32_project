@@ -1,16 +1,11 @@
 #include "Protocol.h"
 
-#include <cstring>
-
 #include "Log.h"
+#include "Names.h"
 
 namespace {
 
 constexpr const char* kLayer = "protocol";
-
-bool isCommand(const char* cmd, const char* name) {
-    return std::strcmp(cmd, name) == 0;
-}
 
 void logRequestError(const char* code, const std::string& message, JsonVariantConst request) {
     const JsonVariantConst id = request["id"];
@@ -108,17 +103,17 @@ Protocol::Result Protocol::validate(JsonVariantConst request) const {
 
 Protocol::Result Protocol::dispatch(const char* cmd, JsonVariantConst request,
                                     JsonDocument& response) {
-    if (isCommand(cmd, "ping")) {
+    if (sameName(cmd, "ping")) {
         return std::nullopt;
     }
-    if (isCommand(cmd, "describe")) {
+    if (sameName(cmd, "describe")) {
         describe(response["data"].to<JsonObject>());
         return std::nullopt;
     }
-    if (isCommand(cmd, "get")) {
+    if (sameName(cmd, "get")) {
         return get(request["device"], response);
     }
-    if (isCommand(cmd, "set")) {
+    if (sameName(cmd, "set")) {
         return set(request["device"], request["data"], response);
     }
     return ProtocolError{ErrorCode::kUnknownCmd, "cmd", std::string("unknown command: ") + cmd};

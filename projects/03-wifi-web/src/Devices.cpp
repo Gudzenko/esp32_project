@@ -1,15 +1,6 @@
 #include "Devices.h"
 
-#include <cstring>
-#include <string>
-
-namespace {
-
-ProtocolError unknownDevice(const char* device) {
-    return {ErrorCode::kUnknownDevice, "device", std::string("unknown device: ") + device};
-}
-
-}  // namespace
+#include "Names.h"
 
 Devices::Devices(std::vector<Device*> devices) : devices_(std::move(devices)) {
     for (Device* device : devices_) {
@@ -57,7 +48,7 @@ std::optional<ProtocolError> Devices::set(const char* name, JsonObjectConst valu
 
 Device* Devices::find(const char* name) const {
     for (Device* device : devices_) {
-        if (std::strcmp(name, device->name()) == 0) {
+        if (sameName(name, device->name())) {
             return device;
         }
     }

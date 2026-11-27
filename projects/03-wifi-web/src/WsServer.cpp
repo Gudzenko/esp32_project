@@ -65,6 +65,7 @@ void WsServer::onConnected(uint8_t client) {
         return;
     }
     activeClient_ = client;
+    // TODO: free heap is printed for debugging only; remove when memory use is known.
     logInfo(kLayer, "client connected from %s, free heap %lu",
             server_.remoteIP(client).toString().c_str(), ESP.getFreeHeap());
 }
