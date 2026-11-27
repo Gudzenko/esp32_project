@@ -1,21 +1,18 @@
 #include "Log.h"
 
 #include <Arduino.h>
-#include <esp_timer.h>
 
 #include <cstdarg>
 
+#include "Uptime.h"
 #include "config.h"
 
 namespace {
 
-constexpr uint64_t kMicrosPerMilli = 1000;
-
 void logLine(const char* level, const char* layer, const char* format, va_list args) {
     char text[config::kMaxLogLineLength];
     vsnprintf(text, sizeof(text), format, args);
-    const uint64_t uptimeMs = esp_timer_get_time() / kMicrosPerMilli;
-    Serial.printf("%llu [%s] %s %s\n", uptimeMs, layer, level, text);
+    Serial.printf("%llu [%s] %s %s\n", uptimeMs(), layer, level, text);
 }
 
 }  // namespace

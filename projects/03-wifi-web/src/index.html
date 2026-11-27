@@ -7,10 +7,121 @@
 <link rel="icon" href="data:,">
 <style>
   body { font-family: sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+  #status { font-weight: bold; }
+  #log { background: #f4f4f4; padding: 0.5rem; height: 20rem; overflow-y: auto; font-size: 0.85rem; }
 </style>
 </head>
 <body>
 <h1>ESP32</h1>
-<p>The page is served by the board.</p>
+<p>Connection: <span id="status"></span></p>
+<p><button id="send" disabled>Send test message</button></p>
+<pre id="log"></pre>
+<script>
+const kWsPort = 81;
+const kReconnectDelayMs = 5000;
+const kPingIntervalMs = 2500;
+const kSilenceTimeoutMs = 5000;
+const kPing = "ping";
+
+const Status = {
+  connecting: "connecting",
+  connected: "connected",
+  busy: "board busy",
+  lost: "no connection",
+};
+
+const statusView = document.getElementById("status");
+const sendButton = document.getElementById("send");
+const logView = document.getElementById("log");
+
+let socket = null;
+let checkTimer = null;
+let lastMessageAt = 0;
+let boardBusy = false;
+let testCount = 0;
+
+function timeNow() {
+  const now = new Date();
+  return now.toLocaleTimeString("en-GB") + "." + String(now.getMilliseconds()).padStart(3, "0");
+}
+
+function log(direction, text) {
+  logView.textContent += `${timeNow()} ${direction} ${text}\n`;
+  logView.scrollTop = logView.scrollHeight;
+}
+
+function setStatus(status) {
+  statusView.textContent = status;
+  sendButton.disabled = status !== Status.connected;
+}
+
+function isBusyError(text) {
+  try {
+    return JSON.parse(text).error?.code === "busy";
+  } catch {
+    return false;
+  }
+}
+
+function connect() {
+  setStatus(Status.connecting);
+  socket = new WebSocket(`ws://${location.hostname}:${kWsPort}/`);
+  socket.onopen = onOpen;
+  socket.onmessage = onMessage;
+  socket.onclose = onClose;
+  lastMessageAt = Date.now();
+  checkTimer = setInterval(checkConnection, kPingIntervalMs);
+}
+
+function onOpen() {
+  boardBusy = false;
+  lastMessageAt = Date.now();
+  setStatus(Status.connected);
+  log("--", "connected");
+}
+
+function onMessage(event) {
+  lastMessageAt = Date.now();
+  if (event.data === kPing) {
+    return;
+  }
+  log("<-", event.data);
+  boardBusy = isBusyError(event.data);
+}
+
+function onClose() {
+  clearInterval(checkTimer);
+  setStatus(boardBusy ? Status.busy : Status.lost);
+  log("--", `closed, reconnect in ${kReconnectDelayMs / 1000} s`);
+  setTimeout(connect, kReconnectDelayMs);
+}
+
+function checkConnection() {
+  if (Date.now() - lastMessageAt > kSilenceTimeoutMs) {
+    dropConnection("no answer from the board");
+    return;
+  }
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(kPing);
+  }
+}
+
+function dropConnection(reason) {
+  log("--", reason);
+  socket.onclose = null;
+  socket.close();
+  onClose();
+}
+
+function sendTestMessage() {
+  testCount += 1;
+  const text = `test ${testCount}`;
+  socket.send(text);
+  log("->", text);
+}
+
+sendButton.onclick = sendTestMessage;
+connect();
+</script>
 </body>
 </html>

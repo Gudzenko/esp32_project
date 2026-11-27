@@ -11,7 +11,7 @@ How clients (web page, Python tools, mobile app) talk to the board.
 | Field | In | Meaning |
 |---|---|---|
 | `id` | request, response | Request number set by the client (1, 2, 3, ...). The response has the same `id`. |
-| `cmd` | request | Command: `describe`, `get`, `set` |
+| `cmd` | request | Command: `describe`, `get`, `set`, `ping` |
 | `status` | response | `ok` or `error` |
 | `event` | event | What happened on the board: `changed` |
 | `time` | response, event | Milliseconds since the board started (64-bit) |
@@ -61,6 +61,19 @@ What the board has. Clients call it after connecting.
 ```
 
 Property description: `values` (list of allowed values), `min`/`max` (number range), `readonly`.
+
+### ping
+
+Checks that the connection is alive.
+
+```json
+→ {"id": 12, "cmd": "ping"}
+← {"id": 12, "time": 15230, "status": "ok"}
+```
+
+The client sends it every 2.5 s. If nothing comes from the board for 5 s, the connection is lost:
+the client closes it and connects again. Without it, the client does not notice a board reset or
+power loss: the connection just stays silent.
 
 ## Events
 

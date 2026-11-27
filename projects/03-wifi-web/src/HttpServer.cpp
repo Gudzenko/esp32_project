@@ -18,16 +18,11 @@ void HttpServer::begin() {
     server_.on("/", HTTP_GET, [this] { sendPage(); });
     server_.onNotFound([this] { sendNotFound(); });
     server_.begin();
-    started_ = true;
     logInfo(kLayer, "server started on port %u", port_);
 }
 
 void HttpServer::update() {
     server_.handleClient();
-}
-
-bool HttpServer::isStarted() const {
-    return started_;
 }
 
 void HttpServer::sendPage() {

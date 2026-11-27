@@ -3,6 +3,7 @@
 #include "HttpServer.h"
 #include "Log.h"
 #include "WifiLink.h"
+#include "WsServer.h"
 #include "config.h"
 
 #if __has_include("secrets.h")
@@ -15,8 +16,10 @@ WifiLink wifi(secrets::kWifiSsid, secrets::kWifiPassword, config::kBoardName,
               {secrets::kStaticIp, secrets::kGateway, secrets::kSubnet},
               config::kWifiRetryIntervalMs);
 HttpServer http(config::kHttpPort);
+WsServer ws(config::kWsPort);
 
 bool ledOn = false;
+bool serversStarted = false;
 
 void setLed(bool on) {
     if (on == ledOn) {
@@ -34,26 +37,38 @@ void updateStatusLed(uint32_t now) {
     setLed((now / config::kLedBlinkIntervalMs) % 2 == 0);
 }
 
-void updateHttp() {
+void startServers() {
+    http.begin();
+    ws.begin();
+    serversStarted = true;
+}
+
+void updateServers() {
     if (!wifi.isConnected()) {
         return;
     }
-    if (!http.isStarted()) {
-        http.begin();
+    if (!serversStarted) {
+        startServers();
     }
     http.update();
+    ws.update();
+}
+
+void echo(const char* text, size_t length) {
+    ws.send(text, length);
 }
 
 void setup() {
     Serial.begin(config::kSerialBaud);
     pinMode(config::kLedPin, OUTPUT);
     logInfo("main", "%s started, firmware %s", config::kBoardName, config::kFirmwareVersion);
+    ws.onMessage(echo);
     wifi.begin();
 }
 
 void loop() {
     const uint32_t now = millis();
     wifi.update(now);
-    updateHttp();
+    updateServers();
     updateStatusLed(now);
 }

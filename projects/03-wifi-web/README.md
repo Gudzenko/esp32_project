@@ -37,10 +37,10 @@ Four layers. A lower layer knows nothing about the upper ones.
 | Wi-Fi | 2.4 GHz only (ESP32 limit). `WiFi.setSleep(false)`: fast replies (no 100–300 ms power-save delay) |
 | Clients | One at a time; the second gets `busy`. No password: anyone in the home network can connect (protection later) |
 | Page | Simple: connection state, LED buttons, message log. `index.html` is embedded into the firmware at build time (no file system). Reconnects every 5 s, then asks `describe` and `get` again |
-| Libraries | Built-in `WebServer`, `WebSockets` (links2004), `ArduinoJson` 7, versions pinned |
+| Libraries | Built-in `WebServer`, `WebSockets` (links2004, 2.7.3), `ArduinoJson` 7, versions pinned. WebSocket runs on its own port 81 (the page stays on 80) |
 | Constants | All in `src/config.h` (board name, firmware version, pins, timeouts, limits) |
 | Secrets | Wi-Fi name and password in `src/secrets.h` (git-ignored). `src/secrets.example.h` is committed |
-| Message size | Generous limit (~8 KB): protects the memory, never reached by normal messages |
+| Message size | 15 KB, set inside the WebSockets library (cannot be changed from outside). The library checks the size before reading and closes the connection (code 1009): the memory is safe |
 | Logs | `<board ms> [layer] LEVEL text`, only state changes and errors. The PC adds date and time when reading |
 | Free memory | Printed on client connect/disconnect, for debugging only (remove later) |
 

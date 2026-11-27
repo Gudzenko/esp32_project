@@ -8,7 +8,6 @@ public:
     explicit HttpServer(uint16_t port);
     void begin();
     void update();
-    bool isStarted() const;
 
 private:
     void sendPage();
@@ -16,5 +15,4 @@ private:
 
     WebServer server_;
     uint16_t port_;
-    bool started_ = false;
 };

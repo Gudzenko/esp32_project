@@ -18,4 +18,11 @@ constexpr uint32_t kWifiRetryIntervalMs = 5000;
 
 constexpr uint16_t kHttpPort = 80;
 
+constexpr uint16_t kWsPort = 81;
+constexpr uint32_t kWsPingIntervalMs = 2500;
+constexpr uint32_t kWsPongTimeoutMs = 2000;
+constexpr uint8_t kWsMissedPongsToDisconnect = 2;
+static_assert(kWsPongTimeoutMs < kWsPingIntervalMs,
+              "WebSockets library never detects a lost client if the pong timeout >= ping interval");
+
 }  // namespace config
