@@ -38,3 +38,4 @@ See [docs/setup.md](docs/setup.md).
 - [docs/protocol.md](docs/protocol.md) – JSON protocol between the board and clients
 - [docs/memory.md](docs/memory.md) – flash partitions and memory use
 - [docs/known-issues.md](docs/known-issues.md) – known problems and workarounds
+- [docs/ideas/robot-ros.md](docs/ideas/robot-ros.md) – idea: Raspberry Pi with ROS 2 + ESP32 (not decided)
