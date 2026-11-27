@@ -1,5 +1,8 @@
 #include <Arduino.h>
+#include <Button.h>
 
+#include "ButtonDevice.h"
+#include "Controller.h"
 #include "Devices.h"
 #include "HttpServer.h"
 #include "Led.h"
@@ -22,9 +25,12 @@ WifiLink wifi(secrets::kWifiSsid, secrets::kWifiPassword, config::kBoardName,
               config::kWifiRetryIntervalMs);
 HttpServer http(config::kHttpPort);
 WsServer ws(config::kWsPort);
-Led led(config::kLedName, config::kLedPin);
-LedDevice ledDevice(led);
-Devices devices({&ledDevice});
+bot::Button bootButton(config::kBootButtonPin);
+Led led(config::kLedPin);
+LedDevice ledDevice(config::kLedName, led);
+ButtonDevice bootButtonDevice(config::kBootButtonName, bootButton);
+Devices devices({&ledDevice, &bootButtonDevice});
+Controller controller(bootButton, led);
 Protocol protocol(config::kBoardName, config::kFirmwareVersion, config::kProtocolVersion,
                   devices);
 
@@ -56,12 +62,19 @@ std::string busyResponse() {
     return protocol.busyError(uptimeMs());
 }
 
+void sendChangedEvent(const Device& device) {
+    const std::string event = protocol.changedEvent(device, uptimeMs());
+    ws.send(event.c_str(), event.size());
+}
+
 void setup() {
     Serial.begin(config::kSerialBaud);
     logInfo("main", "%s started, firmware %s", config::kBoardName, config::kFirmwareVersion);
     if (!led.begin()) {
         logError("main", "LED PWM setup failed");
     }
+    bootButton.begin();
+    devices.onChanged(sendChangedEvent);
     ws.onMessage(handleMessage);
     ws.onBusy(busyResponse);
     wifi.begin();
@@ -71,5 +84,6 @@ void loop() {
     const uint32_t now = millis();
     wifi.update(now);
     updateServers();
+    bootButton.update();
     led.update(now);
 }

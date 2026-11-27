@@ -20,11 +20,7 @@ uint32_t toDuty(float level) {
 
 }  // namespace
 
-Led::Led(const char* name, uint8_t pin) : name_(name), pin_(pin) {}
-
-const char* Led::name() const {
-    return name_;
-}
+Led::Led(uint8_t pin) : pin_(pin) {}
 
 bool Led::begin() {
     if (!ledcAttach(pin_, config::kPwmFrequencyHz, config::kPwmResolutionBits)) {
@@ -49,7 +45,14 @@ void Led::setMode(Mode mode) {
     }
     mode_ = mode;
     update(millis());
-    logInfo(kLayer, "%s mode %s", name_, modeName(mode_));
+    logInfo(kLayer, "pin %u mode %s", pin_, modeName(mode_));
+    for (const Listener& listener : listeners_) {
+        listener();
+    }
+}
+
+void Led::addListener(Listener listener) {
+    listeners_.push_back(std::move(listener));
 }
 
 Led::Mode Led::mode() const {
@@ -86,6 +89,11 @@ std::optional<Led::Mode> Led::parseMode(const char* name) {
         }
     }
     return std::nullopt;
+}
+
+Led::Mode Led::nextMode(Mode mode) {
+    const uint8_t next = (static_cast<uint8_t>(mode) + 1) % static_cast<uint8_t>(Mode::kCount);
+    return static_cast<Mode>(next);
 }
 
 uint32_t Led::dutyFor(uint32_t now) const {

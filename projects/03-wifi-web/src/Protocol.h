@@ -15,6 +15,7 @@ public:
              Devices& devices);
     std::string handle(const char* text, size_t length, uint64_t timeMs);
     std::string busyError(uint64_t timeMs) const;
+    std::string changedEvent(const Device& device, uint64_t timeMs) const;
 
 private:
     using Result = std::optional<ProtocolError>;

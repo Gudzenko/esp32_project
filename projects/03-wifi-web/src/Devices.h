@@ -11,6 +11,7 @@
 class Devices {
 public:
     explicit Devices(std::vector<Device*> devices);
+    void onChanged(Device::ChangeHandler handler);
     void describe(JsonObject devices) const;
     void getAll(JsonObject data) const;
     std::optional<ProtocolError> get(const char* name, JsonObject data) const;
@@ -18,6 +19,9 @@ public:
 
 private:
     Device* find(const char* name) const;
+    void handleChanged(const Device& device) const;
 
     std::vector<Device*> devices_;
+    Device::ChangeHandler changeHandler_;
+    const Device* changingBySet_ = nullptr;
 };

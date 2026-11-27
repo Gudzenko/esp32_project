@@ -3,7 +3,7 @@
 The board connects to the home Wi-Fi and is controlled over a WebSocket API.
 A simple web page served by the board is a test client of the same API.
 
-Status: **steps 1–5 of the plan are done.**
+Status: **steps 1–6 of the plan are done.**
 
 ## Goal
 
@@ -14,20 +14,25 @@ Status: **steps 1–5 of the plan are done.**
 
 ## Architecture
 
-Four layers. A lower layer knows nothing about the upper ones.
+Layers. A lower layer knows nothing about the upper ones.
 
 | Layer | Responsibility | Checks |
 |---|---|---|
 | Network | Connect to Wi-Fi, reconnect every 5 s, host name, mDNS, print IP | – |
 | Connection | Serve the page, WebSocket with one client, detect a lost client (5 s) | Only one client (`busy`), message size |
 | Protocol | JSON message → action → response or error | JSON, `id`, command, device, property |
-| Logic | Devices. `Devices` keeps a list of `Device` objects and finds them by name. Each device type has a class that converts JSON to calls (`LedDevice` → `Led`); hardware classes like `Led` know nothing about JSON | Property exists, read-only, value meaning (allowed mode, range) |
+| Logic | Devices. `Devices` keeps a list of `Device` objects and finds them by name. Each device type has a class that converts JSON to calls (`LedDevice` → `Led`, `ButtonDevice` → `Button`); hardware classes know nothing about JSON | Property exists, read-only, value meaning (allowed mode, range) |
+| Behavior | `Controller`: rules "when X happens, do Y" (BOOT pressed → next LED mode). Knows the hardware classes, nothing about JSON or the network | – |
 
 - Everything runs in `loop()`, one thread, no `delay()`. Each layer has a short non-blocking `update()`.
 - Two directions: request → response, and events from the board (button) → client, if connected.
 - Board states: starting → connecting to Wi-Fi → online, no client → client connected.
   The logic works in all states. When Wi-Fi or the client is lost, the board steps back and waits.
 - Future motors: stop when the client is lost.
+- Changes go up by listeners: `Button`/`Led` → `ButtonDevice`/`LedDevice` → `Devices` → `main.cpp` →
+  `Protocol` (event text) → `WsServer`. Nobody below knows who listens.
+- `Devices` does not send an event for a change made by the client's own `set`:
+  while `set` runs, it marks the device and drops its change notifications. The client gets the response instead.
 
 ## Decisions
 

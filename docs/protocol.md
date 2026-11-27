@@ -79,10 +79,12 @@ power loss: the connection just stays silent.
 ## Events
 
 The board sends an event when a value changes on the board itself (button, sensor, failsafe).
+The event has the full device state, like `get`.
 The client that changed a value with `set` gets the response, not an event.
 
 ```json
-← {"event": "changed", "time": 152871, "device": "led", "data": {"mode": "cubic"}}
+← {"event": "changed", "time": 152870, "device": "boot", "data": {"pressed": true}}
+← {"event": "changed", "time": 152871, "device": "led", "data": {"mode": "cubic", "duty": 0}}
 ```
 
 ## Errors

@@ -14,6 +14,8 @@ constexpr size_t kMaxLogLineLength = 256;
 
 constexpr const char* kLedName = "led";
 constexpr uint8_t kLedPin = 2;
+constexpr const char* kBootButtonName = "boot";
+constexpr uint8_t kBootButtonPin = 0;
 constexpr uint32_t kPwmFrequencyHz = 5000;
 constexpr uint8_t kPwmResolutionBits = 12;
 constexpr uint32_t kLedBreathPeriodMs = 2000;

@@ -1,7 +1,7 @@
 {
     "name": "Button",
-    "version": "0.1.0",
-    "description": "Push button connected to GND, with press events",
+    "version": "0.2.0",
+    "description": "Push button connected to GND, with press events and change listeners",
     "frameworks": "arduino",
     "platforms": "espressif32"
 }

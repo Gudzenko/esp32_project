@@ -23,10 +23,12 @@ std::string allowedModes() {
 
 }  // namespace
 
-LedDevice::LedDevice(Led& led) : led_(led) {}
+LedDevice::LedDevice(const char* name, Led& led) : name_(name), led_(led) {
+    led_.addListener([this] { notifyChanged(); });
+}
 
 const char* LedDevice::name() const {
-    return led_.name();
+    return name_;
 }
 
 const char* LedDevice::type() const {

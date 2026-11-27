@@ -5,7 +5,7 @@
 
 class LedDevice : public Device {
 public:
-    explicit LedDevice(Led& led);
+    LedDevice(const char* name, Led& led);
     const char* name() const override;
     const char* type() const override;
     void describe(JsonObject props) const override;
@@ -13,5 +13,6 @@ public:
     std::optional<ProtocolError> set(JsonObjectConst values, JsonObject data) override;
 
 private:
+    const char* name_;
     Led& led_;
 };

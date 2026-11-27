@@ -60,6 +60,15 @@ std::string Protocol::busyError(uint64_t timeMs) const {
                          {ErrorCode::kBusy, "", "another client is connected"});
 }
 
+std::string Protocol::changedEvent(const Device& device, uint64_t timeMs) const {
+    JsonDocument event;
+    event["event"] = "changed";
+    event["time"] = timeMs;
+    event["device"] = device.name();
+    device.get(event["data"].to<JsonObject>());
+    return serialize(event);
+}
+
 Protocol::Result Protocol::execute(JsonVariantConst request, uint64_t timeMs,
                                    JsonDocument& response) {
     const Result invalid = validate(request);

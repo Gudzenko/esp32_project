@@ -134,6 +134,11 @@ function onMessage(event) {
     return;
   }
   checkBoardRestart(message.time);
+  if (message.event === "changed") {
+    showValues(message.device, message.data);
+    log("<-", event.data);
+    return;
+  }
   boardBusy = message.error?.code === "busy";
   const request = pending.get(message.id);
   pending.delete(message.id);

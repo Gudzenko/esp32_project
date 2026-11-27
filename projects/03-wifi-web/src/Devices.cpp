@@ -11,7 +11,15 @@ ProtocolError unknownDevice(const char* device) {
 
 }  // namespace
 
-Devices::Devices(std::vector<Device*> devices) : devices_(std::move(devices)) {}
+Devices::Devices(std::vector<Device*> devices) : devices_(std::move(devices)) {
+    for (Device* device : devices_) {
+        device->onChanged([this](const Device& changed) { handleChanged(changed); });
+    }
+}
+
+void Devices::onChanged(Device::ChangeHandler handler) {
+    changeHandler_ = std::move(handler);
+}
 
 void Devices::describe(JsonObject devices) const {
     for (const Device* device : devices_) {
@@ -37,10 +45,14 @@ std::optional<ProtocolError> Devices::get(const char* name, JsonObject data) con
 
 std::optional<ProtocolError> Devices::set(const char* name, JsonObjectConst values,
                                           JsonObject data) {
-    if (Device* device = find(name)) {
-        return device->set(values, data);
+    Device* device = find(name);
+    if (device == nullptr) {
+        return unknownDevice(name);
     }
-    return unknownDevice(name);
+    changingBySet_ = device;
+    const std::optional<ProtocolError> error = device->set(values, data);
+    changingBySet_ = nullptr;
+    return error;
 }
 
 Device* Devices::find(const char* name) const {
@@ -50,4 +62,11 @@ Device* Devices::find(const char* name) const {
         }
     }
     return nullptr;
+}
+
+void Devices::handleChanged(const Device& device) const {
+    if (&device == changingBySet_ || !changeHandler_) {
+        return;
+    }
+    changeHandler_(device);
 }

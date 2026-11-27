@@ -11,10 +11,16 @@ void Button::begin() {
 
 void Button::update() {
     const bool pressedNow = digitalRead(pin_) == LOW;
-    if (pressedNow && !pressed_) {
-        pressedEvent_ = true;
+    if (pressedNow == pressed_) {
+        return;
     }
     pressed_ = pressedNow;
+    if (pressed_) {
+        pressedEvent_ = true;
+    }
+    for (const Listener& listener : listeners_) {
+        listener(pressed_);
+    }
 }
 
 bool Button::isPressed() const {
@@ -25,6 +31,10 @@ bool Button::wasPressed() {
     const bool event = pressedEvent_;
     pressedEvent_ = false;
     return event;
+}
+
+void Button::addListener(Listener listener) {
+    listeners_.push_back(std::move(listener));
 }
 
 }  // namespace bot
