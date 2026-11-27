@@ -40,6 +40,20 @@ the output from the start. Options: `--port`, `--baud` (default 115200), `--no-r
 `--no-boot-log` (hide ROM bootloader lines; keep them when looking for the reset reason or a crash).
 Lines starting with `---` are script info (stderr).
 
+**`--no-reset` does not keep the board running on Linux:** the kernel driver toggles DTR/RTS when
+the port is opened, and the auto-reset circuit restarts the board anyway. To watch a running board
+without a restart, use the network (logs over the API) or ask the user to keep the monitor open.
+
+**Never upload and read the port at the same time** (for example with `&` in one command):
+the second one fails or the board stays in download mode (`waiting for download`).
+To test the board over the network while reading the log, start the network part in the background
+with a delay, then the script:
+
+```bash
+{ sleep 6; <network test>; } > <scratch dir>/out.txt 2>&1 &
+~/.platformio/penv/bin/python -I .claude/skills/esp32-build-flash/serial_read.py --seconds 15; wait; cat <scratch dir>/out.txt
+```
+
 Compare the output with what the code should print. Report the result to the user.
 
 ## 4. Commands for the user
@@ -58,6 +72,7 @@ If there is garbage at the start of the monitor, press **EN** on the board.
 | Message | Cause and fix |
 |---|---|
 | `Could not open /dev/ttyUSB0, the port is busy` | Monitor is open. Ask the user to close it |
+| Upload `[FAILED]` once, nothing else wrong | Sometimes the first connect fails: run the upload again |
 | `Failed to connect to ESP32` | Hold BOOT, press EN, release BOOT, retry. Check cable. Run skill `esp32-env-check` |
 | `Permission denied` on the port | `dialout` group: run skill `esp32-env-check` |
 | Garbled text in the monitor | `Serial.begin()` speed differs from `monitor_speed` |

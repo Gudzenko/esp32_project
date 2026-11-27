@@ -33,7 +33,9 @@ The user knows Python well and C++ only at a basic level. Talk to the user in Ru
 - Python for tools on the PC (scripts, plotting, data).
 - Environment setup: `docs/setup.md`. Problems with the board connection: skill `esp32-env-check`.
 - Build, upload, read serial output: skill `esp32-build-flash`. Known problems: `docs/known-issues.md`.
-- How we write firmware (patterns, 3.x pitfalls, wiring checklist, new project/library): skill `esp32-arduino-patterns`.
+- How we write firmware (patterns, architecture, 3.x pitfalls, unit tests, wiring checklist,
+  new project/library): skill `esp32-arduino-patterns`.
+- Wi-Fi, web page, WebSocket API, protocol, network tests: skill `esp32-wifi-web` (`docs/protocol.md`).
 - Shared PlatformIO settings: `platformio-common.ini` (each project `extends = common_esp32`).
 
 ## Repository layout

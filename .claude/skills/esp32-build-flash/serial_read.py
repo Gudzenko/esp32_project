@@ -16,7 +16,8 @@ def parse_args():
     parser.add_argument("--port", help="serial port (default: first /dev/ttyUSB* or /dev/ttyACM*)")
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--seconds", type=float, default=5.0, help="how long to read after reset")
-    parser.add_argument("--no-reset", action="store_true", help="do not reset the board")
+    parser.add_argument("--no-reset", action="store_true",
+                        help="no extra RTS reset (on Linux opening the port still resets the board)")
     parser.add_argument("--no-boot-log", action="store_true",
                         help="hide the ROM bootloader lines (ets, rst:, load:, ...)")
     return parser.parse_args()
